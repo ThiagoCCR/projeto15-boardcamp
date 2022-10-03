@@ -23,7 +23,7 @@ async function CreateGame(req, res) {
 
 async function ReadGames(req, res) {
   try {
-    let allGames = await connection.query("SELECT * FROM games;");
+    let allGames = await connection.query(`SELECT games.*, categories.name AS "categoryName" FROM games JOIN categories ON games."categoryId"=categories.id;`);
     allGames = allGames.rows;
     res.status(200).send(allGames);
   } catch (error) {

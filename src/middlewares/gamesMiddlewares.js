@@ -20,6 +20,7 @@ async function validateGame(req, res, next) {
     if (isUsed) {
       return res.status(409).send("O jogo já está cadastrado");
     }
+    next();
   } catch (error) {
     console.error(error.message);
     res.sendStatus(500);
