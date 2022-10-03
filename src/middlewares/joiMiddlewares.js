@@ -21,6 +21,12 @@ const customerSchema = joi.object({
   birthday: joi.date().required(),
 });
 
+const rentalSchema = joi.object({
+  customerId: joi.number().required(),
+  gameId: joi.number().required(),
+  daysRented: joi.number().required(),
+});
+
 async function validateGameSchema(req, res, next) {
   const gameData = req.body;
   const validation = gameSchema.validate(gameData, { abortEarly: false });
@@ -53,4 +59,20 @@ async function validateCustomerSchema(req, res, next) {
   next();
 }
 
-export { validateGameSchema, validateCustomerSchema };
+async function validateRentalSchema(req, res, next) {
+  const { customerId, gameId, daysRented } = req.body;
+
+  const validation = rentalSchema.validate(
+    { customerId, gameId, daysRented },
+    { abortEarly: false }
+  );
+
+  if (validation.error) {
+    const error = validation.error.details.map((value) => value.message);
+    return res.status(422).send(error);
+  }
+  res.locals.rental = { customerId, gameId, daysRented };
+  next();
+}
+
+export { validateGameSchema, validateCustomerSchema, validateRentalSchema };

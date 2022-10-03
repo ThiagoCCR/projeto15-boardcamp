@@ -1,50 +1,19 @@
 import connection from "../db/db.js";
-import joi from "joi";
 import dayjs from "dayjs";
 
-const rentalSchema = joi.object({
-  customerId: joi.number().required(),
-  gameId: joi.number().required(),
-  daysRented: joi.number().required(),
-});
-
 async function InsertRental(req, res) {
-  const { customerId, gameId, daysRented } = req.body;
+  const { customerId, gameId, daysRented } = res.locals.rental;
   const returnDate = null;
   const delayFee = null;
   const date = dayjs().locale("pt-br").format("YYYY-MM-DD");
 
-  const validation = rentalSchema.validate(
-    { customerId, gameId, daysRented },
-    { abortEarly: false }
-  );
-
-  if (validation.error) {
-    const error = validation.error.details.map((value) => value.message);
-    return res.status(422).send(error);
-  }
-  if (daysRented < 1) {
-    return res.status(400).send("Os dias alugados tem que ser maior que um");
-  }
-
   try {
-    const customer = await connection.query(
-      `SELECT * FROM customers WHERE id=$1`,
-      [customerId]
-    );
-    if (customer.rows.length === 0) {
-      return res.status(400).send("Cliente não encontrado");
-    }
     const game = await connection.query(`SELECT * FROM games WHERE id=$1`, [
       gameId,
     ]);
-    if (game.rows.length === 0) {
-      return res.status(400).send("Jogo não encontrado");
-    }
     const validGame = game.rows.find(
       (value) => value.id === gameId && value.stockTotal > 0
     );
-    console.log("OI");
     const originalPrice = daysRented * validGame.pricePerDay;
     const outGame = game.rows
       .filter((value) => value.id === gameId)
@@ -107,7 +76,7 @@ async function ReadRentals(req, res) {
         },
         game: {
           id: rental.gameId,
-          name: rental.gameNamee,
+          name: rental.gameName,
           categoryId: rental.categoryId,
           categoryName: rental.categoryName,
         },
@@ -123,22 +92,9 @@ async function ReadRentals(req, res) {
 
 async function ReturnRental(req, res) {
   const { id } = req.params;
-
-  if (!id) {
-    return res.sendStatus(400);
-  }
+  const rent = res.locals.rent;
 
   try {
-    const isRentalValid = (
-      await connection.query("SELECT * FROM rentals WHERE id=$1", [id])
-    ).rows;
-    if (!isRentalValid) {
-      return res.status(404).send("Aluguel não encontrado");
-    }
-    const rent = isRentalValid[0];
-    if (rent.returnDate !== null) {
-      return res.status(400).send("O aluguel já foi finalizado");
-    }
     const difference = new Date().getTime() - new Date(rent.rentDate).getTime();
     const resultDays = Math.floor(difference / (24 * 3600 * 1000));
     let delayFee = 0;
@@ -159,19 +115,9 @@ async function ReturnRental(req, res) {
 
 async function DeleteRental(req, res) {
   const { id } = req.params;
-  if (!id) {
-    return res.status(400).send("Informe um ID válido");
-  }
 
   try {
-    const isValidId = (
-      await connection.query("SELECT * from rentals WHERE id=$1", [id])
-    ).rows;
-    if (isValidId.length === 0) {
-      return res.status(404).send("Aluguel não encontrado");
-    }
     await connection.query("DELETE FROM rentals WHERE id =$1", [id]);
-
     res.sendStatus(200);
   } catch (error) {
     console.error(error.message);
@@ -206,7 +152,7 @@ async function getRentalsByGameId(gameId, res) {
       },
       game: {
         id: rental.gameId,
-        name: rental.gameNamee,
+        name: rental.gameName,
         categoryId: rental.categoryId,
         categoryName: rental.categoryName,
       },
@@ -239,7 +185,7 @@ async function getRentalsByCustomerId(customerId, res) {
       },
       game: {
         id: rental.gameId,
-        name: rental.gameNamee,
+        name: rental.gameName,
         categoryId: rental.categoryId,
         categoryName: rental.categoryName,
       },
