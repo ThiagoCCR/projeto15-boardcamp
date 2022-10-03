@@ -121,8 +121,40 @@ async function ReadRentals(req, res) {
   }
 }
 
-async function ReturnRental (req,res){
+async function ReturnRental(req, res) {
+  const { id } = req.params;
 
+  if (!id) {
+    return res.sendStatus(400);
+  }
+
+  try {
+    const isRentalValid = (
+      await connection.query("SELECT * FROM rentals WHERE id=$1", [id])
+    ).rows;
+    if (!isRentalValid) {
+      return res.status(404).send("Aluguel não encontrado");
+    }
+    const rent = isRentalValid[0];
+    if (rent.returnDate !== null) {
+      return res.status(400).send("O aluguel já foi finalizado");
+    }
+    const difference = new Date().getTime() - new Date(rent.rentDate).getTime();
+    const resultDays = Math.floor(difference / (24 * 3600 * 1000));
+    let delayFee = 0;
+    if (resultDays > rent.daysRented) {
+      const extraDays = resultDays - rent.daysRented;
+      delayFee = extraDays * rent.originalPrice;
+    }
+    await connection.query(
+      `UPDATE rentals SET "returnDate"=NOW(), "delayFee"=$1 WHERE id=$2`,
+      [delayFee, id]
+    );
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
 }
 
 export { InsertRental, ReadRentals, ReturnRental };
