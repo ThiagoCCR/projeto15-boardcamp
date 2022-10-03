@@ -157,7 +157,29 @@ async function ReturnRental(req, res) {
   }
 }
 
-export { InsertRental, ReadRentals, ReturnRental };
+async function DeleteRental(req, res) {
+  const { id } = req.params;
+  if (!id) {
+    return res.status(400).send("Informe um ID válido");
+  }
+
+  try {
+    const isValidId = (
+      await connection.query("SELECT * from rentals WHERE id=$1", [id])
+    ).rows;
+    if (isValidId.length === 0) {
+      return res.status(404).send("Aluguel não encontrado");
+    }
+    await connection.query("DELETE FROM rentals WHERE id =$1", [id]);
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error(error.message);
+    res.sendStatus(500);
+  }
+}
+
+export { InsertRental, ReadRentals, ReturnRental, DeleteRental };
 
 //callback functions
 

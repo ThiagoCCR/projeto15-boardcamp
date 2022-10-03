@@ -3,6 +3,7 @@ import {
   InsertRental,
   ReadRentals,
   ReturnRental,
+  DeleteRental,
 } from "../controllers/rentalsControllers.js";
 
 const router = express.Router();
@@ -13,6 +14,6 @@ router.get("/rentals", ReadRentals);
 
 router.post("/rentals/:id/return", ReturnRental);
 
-//router.put("/customers/:id", UpdateUser);
+router.delete("/rentals/:id", DeleteRental);
 
 export default router;
